@@ -12,6 +12,7 @@ import type {
   UpdateArtifactsResult,
 } from '../../../../modules/manager/types.ts';
 import { coerceArray } from '../../../../util/array.ts';
+import { readLocalFile } from '../../../../util/fs/index.ts';
 import { getFile } from '../../../../util/git/index.ts';
 import type { FileAddition, FileChange } from '../../../../util/git/types.ts';
 import { coerceString } from '../../../../util/string.ts';
@@ -34,10 +35,15 @@ async function getFileContent(
 ): Promise<string | null> {
   let fileContent: string | null = updatedFileContents[filePath];
   if (!fileContent) {
-    fileContent = await getFile(
-      filePath,
-      config.reuseExistingBranch ? config.branchName : config.baseBranch,
-    );
+    // The local platform has no remote to read a branch ref from - the
+    // working tree already reflects `config.baseBranch`/`branchName`.
+    fileContent =
+      GlobalConfig.get('platform') === 'local'
+        ? await readLocalFile(filePath, 'utf8')
+        : await getFile(
+            filePath,
+            config.reuseExistingBranch ? config.branchName : config.baseBranch,
+          );
   }
   return fileContent;
 }
